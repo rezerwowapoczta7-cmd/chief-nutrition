@@ -38,6 +38,7 @@ st.markdown("""
     max-width: 760px;
 }
 
+/* HEADER */
 .chief-header {
     background: linear-gradient(135deg, #f7f9ff, #ffffff);
     border: 1px solid #eeeeee;
@@ -48,7 +49,7 @@ st.markdown("""
 }
 
 .chief-title {
-    font-size: 1.85rem;
+    font-size: 1.75rem;
     font-weight: 850;
     line-height: 1.1;
 }
@@ -56,36 +57,48 @@ st.markdown("""
 .chief-subtitle {
     color: #777;
     margin-top: 5px;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
 }
 
-.nav-card {
-    background: #ffffff;
-    border: 1px solid #eeeeee;
-    border-radius: 20px;
-    padding: 10px;
-    margin-bottom: 14px;
+/* NAV */
+div[role="radiogroup"] {
+    gap: 6px;
+}
+
+div[role="radiogroup"] label {
+    background: #f4f5f7;
+    border-radius: 14px;
+    padding: 7px 10px;
+    margin-right: 4px;
+}
+
+/* MACRO GRID - custom, mobile safe */
+.macro-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 10px 0 14px 0;
 }
 
 .macro-card {
     background: #ffffff;
     border: 1px solid #eeeeee;
-    border-radius: 20px;
-    padding: 13px;
+    border-radius: 18px;
+    padding: 12px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-    min-height: 104px;
+    min-height: 92px;
 }
 
 .macro-label {
     color: #666;
-    font-size: 0.86rem;
-    margin-bottom: 4px;
+    font-size: 0.82rem;
+    margin-bottom: 3px;
 }
 
 .macro-value {
-    font-size: 2.0rem;
-    font-weight: 750;
-    line-height: 1.1;
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.05;
 }
 
 .good-pill {
@@ -93,9 +106,9 @@ st.markdown("""
     background: #e8f7ee;
     color: #157347;
     border-radius: 999px;
-    padding: 5px 10px;
-    margin-top: 8px;
-    font-size: 0.82rem;
+    padding: 4px 9px;
+    margin-top: 7px;
+    font-size: 0.78rem;
     font-weight: 700;
 }
 
@@ -104,12 +117,13 @@ st.markdown("""
     background: #ffe7e7;
     color: #a10000;
     border-radius: 999px;
-    padding: 5px 10px;
-    margin-top: 8px;
-    font-size: 0.82rem;
+    padding: 4px 9px;
+    margin-top: 7px;
+    font-size: 0.78rem;
     font-weight: 700;
 }
 
+/* CARDS */
 .chief-card {
     background: #ffffff;
     border: 1px solid #eeeeee;
@@ -170,6 +184,38 @@ st.markdown("""
     font-weight: 650;
 }
 
+/* QUICK ITEMS */
+.quick-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
+    margin-top: 8px;
+}
+
+.quick-tile {
+    background: #ffffff;
+    border: 1px solid #eeeeee;
+    border-radius: 18px;
+    padding: 11px 8px;
+    text-align: center;
+    box-shadow: 0 2px 9px rgba(0,0,0,0.035);
+    font-size: 0.86rem;
+    font-weight: 750;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quick-delete {
+    font-size: 0.72rem;
+    text-align: center;
+    color: #999;
+    margin-top: -5px;
+    margin-bottom: 6px;
+}
+
+/* MONTH */
 .month-row {
     background: #ffffff;
     border: 1px solid #eeeeee;
@@ -188,8 +234,33 @@ st.markdown("""
     font-size: 0.84rem;
 }
 
+/* BUTTONS */
 button[kind="secondary"] {
     border-radius: 14px !important;
+}
+
+.stButton > button {
+    border-radius: 14px !important;
+}
+
+/* MOBILE */
+@media (max-width: 480px) {
+    .block-container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .quick-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .macro-value {
+        font-size: 1.55rem;
+    }
+
+    .chief-title {
+        font-size: 1.55rem;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -203,12 +274,38 @@ defaults = {
     "text_key": 0,
     "note_key": 0,
     "manual_key": 0,
-    "quick_edit_id": None,
     "saved_msg": "",
+    "settings_preview": None,
 }
+
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
+
+# ==================================================
+# SAFE INPUT HELPERS
+# ==================================================
+def to_int(value, default=0):
+    try:
+        if value is None:
+            return default
+        txt = str(value).replace(",", ".").strip()
+        if txt == "":
+            return default
+        return int(float(txt))
+    except Exception:
+        return default
+
+def to_float(value, default=0.0):
+    try:
+        if value is None:
+            return default
+        txt = str(value).replace(",", ".").strip()
+        if txt == "":
+            return default
+        return float(txt)
+    except Exception:
+        return default
 
 # ==================================================
 # TIME
@@ -243,7 +340,6 @@ def activity_factor(level):
     return mapping.get(level, 1.55)
 
 def calculate_bmr_tdee(age, sex, height_cm, weight_kg, activity):
-    # Mifflin-St Jeor
     if sex == "female":
         bmr = 10 * weight_kg + 6.25 * height_cm - 5 * age - 161
     else:
@@ -302,6 +398,7 @@ def goals_from_settings(settings, is_gym):
             "f": int(settings["gym_fat"]),
             "c": int(settings["gym_carbs"]),
         }
+
     return {
         "kcal": int(settings["normal_kcal"]),
         "p": int(settings["normal_protein"]),
@@ -360,6 +457,7 @@ def delete_last_today():
     meals = get_day_meals()
     if not meals:
         return False
+
     last = sorted(meals, key=lambda x: (x.get("meal_time", ""), x.get("id", 0)))[-1]
     supabase.table("meals").delete().eq("id", last["id"]).execute()
     return True
@@ -388,16 +486,6 @@ def add_quick_item(name, kcal, protein, fat, carbs, note=""):
         "carbs": int(carbs),
         "note": note or ""
     }).execute()
-
-def update_quick_item(item_id, name, kcal, protein, fat, carbs, note=""):
-    supabase.table("quick_items").update({
-        "name": name,
-        "kcal": int(kcal),
-        "protein": int(protein),
-        "fat": int(fat),
-        "carbs": int(carbs),
-        "note": note or ""
-    }).eq("id", item_id).execute()
 
 def delete_quick_item(item_id):
     supabase.table("quick_items").delete().eq("id", item_id).execute()
@@ -594,24 +682,24 @@ Opis:
     }
 
     return ask_gemini(payload)
-
-# ==================================================
+    # ==================================================
 # UI HELPERS
 # ==================================================
-def show_macro_card(label, used, goal):
+def macro_html(label, used, goal):
     remaining = int(goal - used)
+
     if remaining >= 0:
         pill = f'<span class="good-pill">↑ {remaining} zostało</span>'
     else:
         pill = f'<span class="bad-pill">↓ {abs(remaining)} ponad</span>'
 
-    st.markdown(f"""
+    return f"""
     <div class="macro-card">
         <div class="macro-label">{label} ({goal})</div>
         <div class="macro-value">{int(used)}</div>
         {pill}
     </div>
-    """, unsafe_allow_html=True)
+    """
 
 def show_ai_result(data):
     st.markdown(f"""
@@ -619,9 +707,9 @@ def show_ai_result(data):
         <div class="meal-title">Wynik: {data.get("nazwa", "Posiłek")}</div>
         <div class="macro-row">
             <span class="macro-pill">🔥 {data.get("kcal", 0)} kcal</span>
-            <span class="macro-pill">B {data.get("b", 0)} g</span>
-            <span class="macro-pill">T {data.get("t", 0)} g</span>
-            <span class="macro-pill">W {data.get("w", 0)} g</span>
+            <span class="macro-pill">Białko {data.get("b", 0)} g</span>
+            <span class="macro-pill">Tłuszcze {data.get("t", 0)} g</span>
+            <span class="macro-pill">Węgle {data.get("w", 0)} g</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -645,9 +733,6 @@ def show_ai_result(data):
     elif data.get("insulin_reason"):
         st.caption(f"🩸 Insulina: niskie ryzyko — {data.get('insulin_reason', '')}")
 
-    if data.get("ai_note"):
-        st.caption(f"AI note: {data.get('ai_note')}")
-
 def meal_card(meal):
     name = meal.get("name", "Posiłek")
     time_s = str(meal.get("meal_time", ""))[:5]
@@ -662,45 +747,27 @@ def meal_card(meal):
         <div class="meal-title">{name}</div>
         <div class="macro-row">
             <span class="macro-pill">🔥 {kcal} kcal</span>
-            <span class="macro-pill">B {b} g</span>
-            <span class="macro-pill">T {t} g</span>
-            <span class="macro-pill">W {w} g</span>
+            <span class="macro-pill">Białko {b} g</span>
+            <span class="macro-pill">Tłuszcze {t} g</span>
+            <span class="macro-pill">Węgle {w} g</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    if "WARN" in str(meal.get("keto_alert", "")) or w > 20:
-        st.markdown('<div class="warn-box">⚠️ Keto / węgle: uwaga</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="safe-box">✅ Low Carb / Keto Safe</div>', unsafe_allow_html=True)
-
-    if meal.get("carb_reason"):
-        st.info(f"🍞 Co podbiło węgle: {meal.get('carb_reason')}")
-
-    insulin_alert = meal.get("insulin_alert", "")
-    insulin_reason = meal.get("insulin_reason", "")
-
-    if insulin_alert == "HIGH":
-        st.warning(f"🩸 Insulina HIGH: {insulin_reason}")
-    elif insulin_alert == "MEDIUM":
-        st.info(f"🩸 Insulina MEDIUM: {insulin_reason}")
-    elif insulin_reason:
-        st.caption(f"🩸 Insulina LOW: {insulin_reason}")
-
 # ==================================================
-# APP DATA
+# LOAD DATA
 # ==================================================
 settings = get_settings()
 today_meals = get_day_meals()
 today_sum = sum_meals(today_meals)
 
 # ==================================================
-# HEADER / NAV
+# HEADER
 # ==================================================
 st.markdown("""
 <div class="chief-header">
-    <div class="chief-title">⚓ Chief Nutrition v4.1</div>
-    <div class="chief-subtitle">Low carb tracker • daily build</div>
+    <div class="chief-title">⚓ Chief Nutrition v4.2</div>
+    <div class="chief-subtitle">Low carb tracker • mobile optimized</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -718,17 +785,14 @@ if screen == "🏠 Dzisiaj":
     is_gym = st.toggle("💪 TRENING (Gym Day)", value=False)
     goals = goals_from_settings(settings, is_gym)
 
-    r1c1, r1c2 = st.columns(2)
-    with r1c1:
-        show_macro_card("Kcal", today_sum["kcal"], goals["kcal"])
-    with r1c2:
-        show_macro_card("B", today_sum["b"], goals["p"])
-
-    r2c1, r2c2 = st.columns(2)
-    with r2c1:
-        show_macro_card("T", today_sum["t"], goals["f"])
-    with r2c2:
-        show_macro_card("W", today_sum["w"], goals["c"])
+    st.markdown(f"""
+    <div class="macro-grid">
+        {macro_html("Kalorie", today_sum["kcal"], goals["kcal"])}
+        {macro_html("Białko", today_sum["b"], goals["p"])}
+        {macro_html("Tłuszcze", today_sum["t"], goals["f"])}
+        {macro_html("Węgle", today_sum["w"], goals["c"])}
+    </div>
+    """, unsafe_allow_html=True)
 
     st.progress(min(float(today_sum["kcal"]) / max(float(goals["kcal"]), 1.0), 1.0))
 
@@ -758,13 +822,12 @@ if screen == "🏠 Dzisiaj":
     else:
         text_description = st.text_area(
             "Opisz posiłek lub napój",
-            placeholder="np. jajecznica z 4 jaj na maśle albo kufel 500 ml piwa Kozel czarny",
+            placeholder="np. jajecznica z 4 jaj albo kufel 500 ml Kozel",
             key=f"text_{st.session_state.text_key}"
         )
 
     note = st.text_input(
         "Dodatkowe info",
-        placeholder="np. sos, ukryte składniki, ilość masła",
         key=f"note_{st.session_state.note_key}"
     )
 
@@ -785,15 +848,14 @@ if screen == "🏠 Dzisiaj":
     if st.session_state.ai_result:
         show_ai_result(st.session_state.ai_result)
 
-        csave, ccancel = st.columns(2)
-        with csave:
+        a, b = st.columns(2)
+        with a:
             if st.button("💾 ZAPISZ", use_container_width=True):
                 insert_meal(st.session_state.ai_result, "AI")
                 reset_inputs()
-                st.session_state.saved_msg = "✅ Zapisano. Gotowe na kolejny posiłek."
+                st.session_state.saved_msg = "✅ Zapisano."
                 st.rerun()
-
-        with ccancel:
+        with b:
             if st.button("❌ ANULUJ", use_container_width=True):
                 reset_inputs()
                 st.rerun()
@@ -803,277 +865,139 @@ if screen == "🏠 Dzisiaj":
 
     quick_items = get_quick_items()
 
-    if not quick_items:
-        st.info("Brak szybkich produktów. Dodaj je z sekcji Ręcznie.")
+    if quick_items:
+        cols = st.columns(3)
+
+        for idx, item in enumerate(quick_items):
+            col = cols[idx % 3]
+            with col:
+                if st.button(item["name"], key=f"quick_{item['id']}", use_container_width=True):
+                    insert_meal({
+                        "nazwa": item["name"],
+                        "kcal": item["kcal"],
+                        "b": item["protein"],
+                        "t": item["fat"],
+                        "w": item["carbs"],
+                        "alert": "SAFE"
+                    }, "QUICK")
+                    st.session_state.saved_msg = f"✅ Dodano {item['name']}"
+                    st.rerun()
+
+                if st.button("Usuń", key=f"del_{item['id']}", use_container_width=True):
+                    delete_quick_item(item["id"])
+                    st.rerun()
     else:
-        for item in quick_items:
-            with st.container():
-                st.markdown(f"""
-                <div class="chief-card">
-                    <div class="meal-title">{item["name"]}</div>
-                    <div class="macro-row">
-                        <span class="macro-pill">🔥 {item["kcal"]} kcal</span>
-                        <span class="macro-pill">B {item["protein"]} g</span>
-                        <span class="macro-pill">T {item["fat"]} g</span>
-                        <span class="macro-pill">W {item["carbs"]} g</span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                a, b, c = st.columns(3)
-                with a:
-                    if st.button("➕ Dodaj", key=f"quick_add_{item['id']}", use_container_width=True):
-                        insert_meal({
-                            "nazwa": item["name"],
-                            "kcal": item["kcal"],
-                            "b": item["protein"],
-                            "t": item["fat"],
-                            "w": item["carbs"],
-                            "alert": "SAFE",
-                            "carb_reason": "",
-                            "insulin_alert": "LOW",
-                            "insulin_reason": item.get("note", "")
-                        }, "QUICK")
-                        st.session_state.saved_msg = f"✅ Dodano: {item['name']}"
-                        st.rerun()
-
-                with b:
-                    if st.button("✏️ Edytuj", key=f"quick_edit_{item['id']}", use_container_width=True):
-                        st.session_state.quick_edit_id = item["id"]
-                        st.rerun()
-
-                with c:
-                    if st.button("🗑 Usuń", key=f"quick_del_{item['id']}", use_container_width=True):
-                        delete_quick_item(item["id"])
-                        st.session_state.saved_msg = "✅ Usunięto szybki produkt."
-                        st.rerun()
-
-                if st.session_state.quick_edit_id == item["id"]:
-                    with st.form(f"edit_quick_{item['id']}"):
-                        en = st.text_input("Nazwa", value=item["name"])
-                        ec1, ec2, ec3, ec4 = st.columns(4)
-                        ek = ec1.number_input("Kcal", min_value=0, value=int(item["kcal"]))
-                        eb = ec2.number_input("B", min_value=0, value=int(item["protein"]))
-                        et = ec3.number_input("T", min_value=0, value=int(item["fat"]))
-                        ew = ec4.number_input("W", min_value=0, value=int(item["carbs"]))
-                        enote = st.text_input("Notatka", value=item.get("note", "") or "")
-
-                        s1, s2 = st.columns(2)
-                        with s1:
-                            if st.form_submit_button("Zapisz zmiany", use_container_width=True):
-                                update_quick_item(item["id"], en, ek, eb, et, ew, enote)
-                                st.session_state.quick_edit_id = None
-                                st.session_state.saved_msg = "✅ Zmieniono szybki produkt."
-                                st.rerun()
-                        with s2:
-                            if st.form_submit_button("Anuluj", use_container_width=True):
-                                st.session_state.quick_edit_id = None
-                                st.rerun()
+        st.info("Brak szybkich produktów.")
 
     st.divider()
     st.subheader("📝 Ręcznie")
 
     with st.form(f"manual_{st.session_state.manual_key}", clear_on_submit=True):
         n = st.text_input("Nazwa")
-        mc1, mc2, mc3, mc4 = st.columns(4)
-        kcal = mc1.number_input("Kcal", min_value=0, value=0)
-        b = mc2.number_input("B", min_value=0, value=0)
-        t = mc3.number_input("T", min_value=0, value=0)
-        w = mc4.number_input("W", min_value=0, value=0)
-        note_manual = st.text_input("Notatka / opis", value="")
+        kcal = st.text_input("Kalorie", value="")
+        protein = st.text_input("Białko", value="")
+        fat = st.text_input("Tłuszcze", value="")
+        carbs = st.text_input("Węgle", value="")
+        note_manual = st.text_input("Notatka")
 
-        save_col, quick_col = st.columns(2)
+        c1, c2 = st.columns(2)
 
-        with save_col:
+        with c1:
             save_manual = st.form_submit_button("💾 Zapisz", use_container_width=True)
 
-        with quick_col:
-            add_to_quick = st.form_submit_button("⚡ Dodaj do szybkich", use_container_width=True)
+        with c2:
+            add_quick = st.form_submit_button("⚡ Do szybkich", use_container_width=True)
 
-        if save_manual or add_to_quick:
+        if save_manual or add_quick:
             if not n.strip():
                 st.error("Podaj nazwę.")
             else:
+                kcal_i = to_int(kcal)
+                protein_i = to_int(protein)
+                fat_i = to_int(fat)
+                carbs_i = to_int(carbs)
+
                 if save_manual:
                     insert_meal({
-                        "nazwa": n.strip(),
-                        "kcal": kcal,
-                        "b": b,
-                        "t": t,
-                        "w": w,
-                        "alert": "MANUAL",
-                        "carb_reason": "",
-                        "insulin_alert": "MANUAL",
-                        "insulin_reason": note_manual
+                        "nazwa": n,
+                        "kcal": kcal_i,
+                        "b": protein_i,
+                        "t": fat_i,
+                        "w": carbs_i
                     }, "MANUAL")
                     st.session_state.saved_msg = "✅ Dodano ręcznie."
                     st.session_state.manual_key += 1
                     st.rerun()
 
-                if add_to_quick:
-                    add_quick_item(n.strip(), kcal, b, t, w, note_manual)
+                if add_quick:
+                    add_quick_item(n, kcal_i, protein_i, fat_i, carbs_i, note_manual)
                     st.session_state.saved_msg = "✅ Dodano do szybkich."
                     st.session_state.manual_key += 1
                     st.rerun()
 
-# ==================================================
-# SCREEN 2 DAY
-# ==================================================
 elif screen == "📋 Dzień":
     st.subheader(f"📋 Raport dnia — {now_local().strftime('%d.%m.%Y')}")
 
     if not today_meals:
-        st.info("Brak wpisów na dziś.")
+        st.info("Brak wpisów.")
     else:
-        st.markdown(f"""
-        <div class="soft-card">
-            <div class="meal-title">Podsumowanie dnia</div>
-            <div class="macro-row">
-                <span class="macro-pill">🔥 {today_sum["kcal"]} kcal</span>
-                <span class="macro-pill">B {today_sum["b"]} g</span>
-                <span class="macro-pill">T {today_sum["t"]} g</span>
-                <span class="macro-pill">W {today_sum["w"]} g</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
         for meal in today_meals:
             meal_card(meal)
 
-        if st.button("↩️ Cofnij ostatni wpis z dziś", use_container_width=True):
+        if st.button("↩️ Cofnij ostatni wpis", use_container_width=True):
             delete_last_today()
             st.rerun()
 
-# ==================================================
-# SCREEN 3 MONTH
-# ==================================================
 elif screen == "📅 Miesiąc":
     now = now_local()
     year = now.year
     month = now.month
     last_day = calendar.monthrange(year, month)[1]
 
-    st.subheader(f"📅 Raport miesiąca — {month:02d}.{year}")
-
     month_meals = get_month_meals(year, month)
     grouped = {}
     for m in month_meals:
         grouped.setdefault(m["meal_date"], []).append(m)
-
-    total = sum_meals(month_meals)
-
-    st.markdown(f"""
-    <div class="soft-card">
-        <div class="meal-title">Suma miesiąca</div>
-        <div class="macro-row">
-            <span class="macro-pill">🔥 {total["kcal"]} kcal</span>
-            <span class="macro-pill">B {total["b"]} g</span>
-            <span class="macro-pill">T {total["t"]} g</span>
-            <span class="macro-pill">W {total["w"]} g</span>
-        </div>
-        <div class="small-muted" style="margin-top:8px;">Dni z wpisami: {len(grouped)}</div>
-    </div>
-    """, unsafe_allow_html=True)
 
     for day in range(1, last_day + 1):
         d = datetime.date(year, month, day).strftime("%Y-%m-%d")
         meals = grouped.get(d, [])
         s = sum_meals(meals)
 
-        if meals:
-            st.markdown(f"""
-            <div class="month-row">
-                <div class="month-date">{day:02d}.{month:02d}</div>
-                <div class="macro-row">
-                    <span class="macro-pill">🔥 {s["kcal"]}</span>
-                    <span class="macro-pill">B {s["b"]}</span>
-                    <span class="macro-pill">T {s["t"]}</span>
-                    <span class="macro-pill">W {s["w"]}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-            <div class="month-row" style="opacity:0.45;">
-                <div class="month-date">{day:02d}.{month:02d}</div>
-                <div class="small-muted">Brak wpisów</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-# ==================================================
-# SCREEN 4 SETTINGS
-# ==================================================
-elif screen == "⚙️ Ustawienia":
-    st.subheader("⚙️ Ustawienia")
-
-    st.markdown("### Dane do wyliczeń")
-
-    with st.form("settings_form"):
-        age = st.number_input("Wiek", min_value=10, max_value=100, value=int(settings["age"]))
-        sex_label = st.selectbox(
-            "Płeć",
-            ["male", "female"],
-            index=0 if settings["sex"] == "male" else 1,
-            format_func=lambda x: "Mężczyzna" if x == "male" else "Kobieta"
-        )
-        height = st.number_input("Wzrost cm", min_value=120, max_value=230, value=int(settings["height_cm"]))
-        weight = st.number_input("Waga kg", min_value=30.0, max_value=250.0, value=float(settings["weight_kg"]), step=0.5)
-
-        activity_options = ["bardzo niska", "niska", "umiarkowana", "wysoka", "bardzo wysoka"]
-        activity = st.selectbox(
-            "Aktywność",
-            activity_options,
-            index=activity_options.index(settings["activity_level"]) if settings["activity_level"] in activity_options else 2
-        )
-
-        bmr, tdee, suggested_p = calculate_bmr_tdee(age, sex_label, height, weight, activity)
-
         st.markdown(f"""
-        <div class="soft-card">
-            <div class="meal-title">Wyliczenia</div>
+        <div class="month-row">
+            <div class="month-date">{day:02d}.{month:02d}</div>
             <div class="macro-row">
-                <span class="macro-pill">BMR: {bmr}</span>
-                <span class="macro-pill">Zero kcal: {tdee}</span>
-                <span class="macro-pill">Białko sugerowane: {suggested_p} g</span>
+                <span class="macro-pill">🔥 {s["kcal"]}</span>
+                <span class="macro-pill">B {s["b"]}</span>
+                <span class="macro-pill">T {s["t"]}</span>
+                <span class="macro-pill">W {s["w"]}</span>
             </div>
-            <div class="small-muted" style="margin-top:8px;">Zero kcal = orientacyjne utrzymanie wagi. Poniżej deficyt, powyżej nadwyżka.</div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("### Cele — dzień zwykły")
-        n1, n2, n3, n4 = st.columns(4)
-        normal_kcal = n1.number_input("Kcal", min_value=0, value=int(settings["normal_kcal"]), key="normal_kcal")
-        normal_p = n2.number_input("B", min_value=0, value=int(settings["normal_protein"]), key="normal_p")
-        normal_f = n3.number_input("T", min_value=0, value=int(settings["normal_fat"]), key="normal_f")
-        normal_c = n4.number_input("W", min_value=0, value=int(settings["normal_carbs"]), key="normal_c")
+elif screen == "⚙️ Ustawienia":
+    st.subheader("⚙️ Ustawienia")
 
-        st.markdown("### Cele — dzień treningowy")
-        g1, g2, g3, g4 = st.columns(4)
-        gym_kcal = g1.number_input("Kcal", min_value=0, value=int(settings["gym_kcal"]), key="gym_kcal")
-        gym_p = g2.number_input("B", min_value=0, value=int(settings["gym_protein"]), key="gym_p")
-        gym_f = g3.number_input("T", min_value=0, value=int(settings["gym_fat"]), key="gym_f")
-        gym_c = g4.number_input("W", min_value=0, value=int(settings["gym_carbs"]), key="gym_c")
+    age = st.text_input("Wiek", value=str(settings["age"]))
+    sex = st.selectbox("Płeć", ["male", "female"])
+    height = st.text_input("Wzrost cm", value=str(settings["height_cm"]))
+    weight = st.text_input("Waga kg", value=str(settings["weight_kg"]))
+    activity = st.selectbox(
+        "Aktywność",
+        ["bardzo niska", "niska", "umiarkowana", "wysoka", "bardzo wysoka"]
+    )
 
-        if st.form_submit_button("💾 Zapisz ustawienia", use_container_width=True):
-            save_settings({
-                "id": 1,
-                "age": int(age),
-                "sex": sex_label,
-                "height_cm": int(height),
-                "weight_kg": float(weight),
-                "activity_level": activity,
-                "calculated_bmr": int(bmr),
-                "calculated_tdee": int(tdee),
-                "suggested_protein": int(suggested_p),
-                "normal_kcal": int(normal_kcal),
-                "normal_protein": int(normal_p),
-                "normal_fat": int(normal_f),
-                "normal_carbs": int(normal_c),
-                "gym_kcal": int(gym_kcal),
-                "gym_protein": int(gym_p),
-                "gym_fat": int(gym_f),
-                "gym_carbs": int(gym_c),
-                "updated_at": now_local().isoformat()
-            })
-            st.success("✅ Zapisano ustawienia.")
-            st.rerun()
+    if st.button("Przelicz", use_container_width=True):
+        bmr, tdee, prot = calculate_bmr_tdee(
+            to_int(age, 35),
+            sex,
+            to_int(height, 180),
+            to_float(weight, 90),
+            activity
+        )
+        st.session_state.settings_preview = (bmr, tdee, prot)
+
+    preview = st.session_state.settings_preview
+    if preview:
+        st.info(f"BMR: {preview[0]} | Zero kcal: {preview[1]} | Białko: {preview[2]} g")
